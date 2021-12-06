@@ -80,6 +80,8 @@ reseau *remplire_node(vector_data *v){
             for(int k=0;k<size_col;k++){
                 map[i][j].w[k]=Rand_float(tab[k]-0.02,tab[k]+0.02);
             }
+            map[i][j].activate = 0;
+            map[i][j].etiquet ="Iris_xxxxx";
         }
     }
     r->map = map;
@@ -105,9 +107,39 @@ void display_node(reseau *r){
             for(int k=0;k<size_col;k++){
                 printf("%.3f ",r->map[i][j].w[k]);
             }
-            printf(" ");
+            printf("%c ",r->map[i][j].etiquet[5]);
         }
         printf("\n\n");
+    }
+}
+
+void display_node_carre(reseau *r){
+	int size_col = 4;
+    for(int i=0;i<r->nb_l;i++){
+        printf("node[%d]:  ",i);
+        for(int j=0;j<r->nb_c;j++){
+            if(r->map[i][j].etiquet[8] == 'x'){
+                printf("\033[0;30m");
+                printf("%c ",r->map[i][j].etiquet[8]); 
+                printf("\033[0m");
+            }
+            if(r->map[i][j].etiquet[8] == 's'){
+                printf("\x1B[31m");
+                printf("%c ",r->map[i][j].etiquet[8]); 
+                printf("\x1B[0m"); 
+            }
+            if(r->map[i][j].etiquet[8] == 'g'){
+                printf("\x1B[34m");
+                printf("%c ",r->map[i][j].etiquet[8]); 
+                printf("\x1B[0m");
+            }
+            if(r->map[i][j].etiquet[8] == 'o'){
+                printf("\x1B[32m");
+                printf("%c ",r->map[i][j].etiquet[8]); 
+                printf("\x1B[0m");
+            }
+        }
+        printf("\n");
     }
 }
 
@@ -124,6 +156,7 @@ void display_vect(vector_data *v){
         printf("\n");
     }
 }
+
 
 void normalize_vect(vector_data *v){
     int size_row = 150;
@@ -147,27 +180,26 @@ void shuffert(vector_data *v){
     }
 }
 
-vector_data * recover(char *string){
+vector_data * recover(char *nom_fichier){
     int i = 0;
     int j=0; 
-    char tab[60];
-    char *tab1[150];
+    char string[60];
     int size_row = 150;
-    FILE *f= fopen( string, "r" );
+    FILE *file= fopen( nom_fichier, "r" );
     vector_data *v;
-    if(!f){
+    if(!file){
         printf("fichier n'existe pas");
     }
     v = (vector_data *)calloc(150, sizeof(vector_data));
     if(v==NULL){
         printf("null");
     }
-    fseek(f,0,SEEK_SET);
-	while((fgets(tab,60,f)!=NULL) && (i<size_row) ){
+    fseek(file,0,SEEK_SET);
+	while((fgets(string,60,file)!=NULL) && (i<size_row) ){
 		if(size_row > 1){
 			j=0;
             v[i].x = (double *)calloc(4, sizeof(double));
-            v[i].x[j] = atof(strtok(tab,","));
+            v[i].x[j] = atof(strtok(string,","));
 			for(j=1;j<4;j++){
 				v[i].x[j]= atof(strtok(NULL,","));
     		}
@@ -175,7 +207,7 @@ vector_data * recover(char *string){
 		}		 
   		i++;	 
 	}
-    fclose(f);
+    fclose(file);
     vector_norm(v);
     return v;
 }
@@ -186,20 +218,17 @@ bmu *recuperer_BMU(reseau *r , vector_data v){
     bmu *temp;
     bmu *bmu = malloc(sizeof(*bmu));
     temp=bmu;
-    int d1=0,d2=0;
     for(int l=0;l<r->nb_l;l++){
         for(int c=0;c<r->nb_c;c++ ){
             distance = distance_vector(v.x,r->map[l][c].w);
-            // printf("%f\n",distance);
+            // printf("%d %d %f\n",l,c,distance);
             if(distance <= min){
                 if(distance < min){
                     bmu =temp ;      
-                    d1++;
                     bmu->i=l;
                     bmu->j=c;
                 }
                 if ( distance == min ) {
-                    d2++;
                     bmu->next=malloc(sizeof(*bmu));
                     bmu = bmu->next;
                     bmu->i = l;
@@ -243,7 +272,7 @@ void affichage_bmu(bmu *bmu){
 int main (){
     double alpha_initial = Rand_float(0.7,0.9);
     double alpha=0;
-    int t_total = 1500;
+    int t_total = 500;
     int t=1;
     vector_data *v;
     v = recover("iris.data");
@@ -254,12 +283,20 @@ int main (){
     display_vect(v);
     reseau *r = remplire_node(v);
     printf("\n\n");
-    display_node(r);
+    display_node_carre(r);
     r->bmu=(bmu**)malloc(150*sizeof(bmu));
+    
+    // for(int i=0;i<150;i++){
+    //     affichage_bmu(bmu_aleatoir(recuperer_BMU(r,v[i])));
+    //     printf("\n");
+    // }
+
     for(int iteration= 1; iteration<=2000 ; iteration++){
         alpha = alpha_initial*(1-(double)(t/t_total));
        for(int i=0;i<150;i++){
             r->bmu[i] = bmu_aleatoir(recuperer_BMU(r,v[i]));
+            r->map[r->bmu[i]->i][r->bmu[i]->j].activate = distance_vector(v[i].x , r->map[r->bmu[i]->i][r->bmu[i]->j].w);//mettre la plus petite distance dans l'activation
+            r->map[r->bmu[i]->i][r->bmu[i]->j].etiquet = v[i].id;
             for(int l=0;l<r->nb_l;l++){
                 for (int c = 0; c < r->nb_c; c++){
                     if(((r->bmu[i]->i-3)<l<(r->bmu[i]->i+3)) && ((r->bmu[i]->j-3)<c<(r->bmu[i]->j+3))){
@@ -271,13 +308,21 @@ int main (){
             }
         }
         t++;
-        if(iteration==1500){
+        if(iteration==400){display_node_carre(r);
+        printf("\n");}
+        if(iteration==800){display_node_carre(r);
+        printf("\n");}
+        if(iteration==1200){display_node_carre(r);
+        printf("\n");}
+        if(iteration==1600){display_node_carre(r);
+        printf("\n");}
+        if(iteration==500){
             alpha=Rand_float(0.07,0.09);
-            t_total =500;
+            t_total =1500;
             t=1;
         }
     }
-    display_node(r);
+    display_node_carre(r);
      
  return 0;
 }
