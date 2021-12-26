@@ -1,45 +1,38 @@
 #include "som.h"
 
-reseau *remplire_node(vector_data *v){
-    reseau *r = (reseau *)malloc(sizeof(reseau));
-    r->nb_node=60;
-    r->nb_c=7;
-    r->nb_l=8;
+///////initialiser le reseau
+void initialise_reseau(reseau *r){
+    r->nb_c=6;
+    r->nb_l=10;
+    r->map = (node **)malloc(r->nb_l*sizeof(node));
+    r->bmu=(bmu**)malloc(150*sizeof(bmu));
+    for(int i=0;i<r->nb_l;i++){
+        r->map[i] =(node *)malloc(r->nb_c*sizeof(node));
+        for(int j=0;j<r->nb_c;j++){
+            r->map[i][j].w = (double *)calloc(4, sizeof(double));
+        }
+    }
+}
+
+//////remplire le reseau
+void remplire_node(reseau *r , base_vector_data *base){
     int size_col = 4;
-    float *tab = vector_moyenne(v);
-    node **map = (node **)malloc(r->nb_l*sizeof(node));
-
+    float *tab = vector_moyenne(base);
     for(int i=0;i<r->nb_l;i++){
-        map[i] =(node *)malloc(r->nb_c*sizeof(node));
-        for(int j=0;j<r->nb_c;j++){
-            map[i][j].w = (double *)calloc(4, sizeof(double));
-            for(int k=0;k<size_col;k++){
-                map[i][j].w[k]=Rand_float(tab[k]-0.02,tab[k]+0.02);
-            }
-            map[i][j].activate = 0;
-            map[i][j].etiquet ="Iris_xxxxx";
-        }
-    }
-    r->map = map;
-    return r;
-}
-
-void display_node(reseau *r){
-	int size_col = 4;
-    for(int i=0;i<r->nb_l;i++){
-        printf("node[%d]:",i);
         for(int j=0;j<r->nb_c;j++){
             for(int k=0;k<size_col;k++){
-                printf("%.3f ",r->map[i][j].w[k]);
+                r->map[i][j].w[k]=Rand_float(tab[k]-0.02,tab[k]+0.02);
             }
-            printf("%c ",r->map[i][j].etiquet[5]);
+            r->map[i][j].activate = 0;
+            r->map[i][j].etiquet ="Iris_xxxxx";
         }
-        printf("\n\n");
     }
 }
 
+///afficher la matrice model
 void display_node_carre(reseau *r){
     for(int i=0;i<r->nb_l;i++){
+        // printf("%d ",i );
         for(int j=0;j<r->nb_c;j++){
             if(r->map[i][j].etiquet[8] == 'x'){
                 printf("\033[0;30m");
@@ -66,6 +59,41 @@ void display_node_carre(reseau *r){
     }
 }
 
+void display_info(reseau *r){
+    int g=0;
+    int s=0;
+    int o=0;
+    for(int i=0;i<r->nb_l;i++){
+        for(int j=0;j<r->nb_c;j++){
+            if(r->map[i][j].etiquet[8] == 's'){
+                s++;
+            }
+            if(r->map[i][j].etiquet[8] == 'g'){
+                g++;
+            }
+            if(r->map[i][j].etiquet[8] == 'o'){
+                o++;
+            }
+        }
+    }
+    printf("\n");
+    
+    printf("\x1B[34m");
+    printf("g pour Iris-virginica(%d)  |",g);
+    printf("\x1B[0m");
+
+    printf("\x1B[31m");
+    printf("|  S pour Iris-versicolor(%d)  |",s); 
+    printf("\x1B[0m");
+
+    printf("\x1B[32m");
+    printf("|  o pour Iris-setosa(%d)  |",o);
+    printf("\x1B[0m");
+    
+    printf("\n");
+}
+
+//////trouver les bmu
 bmu *recuperer_BMU(reseau *r , vector_data v){
     double distance=0.0;
     double min =100.00;
@@ -99,6 +127,7 @@ bmu *recuperer_BMU(reseau *r , vector_data v){
     
 }
 
+////////choissir le bmu
 bmu * bmu_aleatoir(bmu * bu){
     int i = 0;
     bmu *temp = bu;
@@ -113,6 +142,7 @@ bmu * bmu_aleatoir(bmu * bu){
     return temp;
 }
 
+//////affiche le bmu
 void affichage_bmu(bmu *bmu){
     while(bmu != NULL){
         printf("%d",bmu->i);
@@ -122,39 +152,36 @@ void affichage_bmu(bmu *bmu){
         }
 }
 
-void apprentisage(reseau *r,vector_data *v){
+//////////////apprentissage
+void apprentissage(reseau *r,base_vector_data *base){
     int *sh = (int*)malloc(150*sizeof(int));
-    double alpha_initial = 0.9;
+    double alpha_initial = 0.8;
     double alpha=0;
     int t_total = 500;
     int t=1;
     int rr=3;
     for(int iteration= 1; iteration<=2000; iteration++){
         alpha = alpha_initial*(1-(double)(t/t_total));
-        // shuffert(v);
         sh = shuf(sh);
-        // for(int i =0; i<150;i++){
-        //     printf("%d:%d\n",i,sh[i]);
-        // }
-        for(int i=0;i<150;i++){
-            r->bmu[i] = bmu_aleatoir(recuperer_BMU(r,v[sh[i]]));
-            r->map[r->bmu[i]->i][r->bmu[i]->j].activate = distance_vector(v[sh[i]].x , r->map[r->bmu[i]->i][r->bmu[i]->j].w);//mettre la plus petite distance dans l'activation
-            r->map[r->bmu[i]->i][r->bmu[i]->j].etiquet = v[sh[i]].id;
+        for(int i=0;i<base->len;i++){
+            r->bmu[i] = bmu_aleatoir(recuperer_BMU(r,base->v[sh[i]]));
+            r->map[r->bmu[i]->i][r->bmu[i]->j].activate = distance_vector(base->v[sh[i]].x , r->map[r->bmu[i]->i][r->bmu[i]->j].w);//mettre la plus petite distance dans l'activation
+            r->map[r->bmu[i]->i][r->bmu[i]->j].etiquet = base->v[sh[i]].id;
             for(int l=0;l<r->nb_l;l++){
                 for (int c = 0; c < r->nb_c; c++){
                     if(  ((r->bmu[i]->i-rr)<=l)  && (l<=(r->bmu[i]->i+rr)) && ((r->bmu[i]->j-rr)<=c) && (c<=(r->bmu[i]->j+rr)) ){
                         for(int k=0;k<4;k++){
-                            r->map[l][c].w[k] = r->map[l][c].w[k] + alpha * (v[sh[i]].x[k] - r->map[l][c].w[k]);
+                            r->map[l][c].w[k] = r->map[l][c].w[k] + alpha * (base->v[sh[i]].x[k] - r->map[l][c].w[k]);
                         }
                     }
                 } 
             }
         }
         if(iteration == 170){
-            // rr = 2;
+            rr = 2;
         }
         if(iteration == 320){
-            // rr = 1;
+            rr = 1;
         }
         // if(iteration==400){display_node_carre(r);
         // printf("\n");}
@@ -164,13 +191,12 @@ void apprentisage(reseau *r,vector_data *v){
         // printf("\n");}
         // if(iteration==1600){display_node_carre(r);
         // printf("\n");}
-         
+        
         t++;
         if(iteration==500){
-            alpha_initial=0.07;
+            alpha_initial=0.08;
             t_total =1500;
             t=1;
-            rr=1;
         }
     }
 }
