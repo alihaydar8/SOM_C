@@ -1,20 +1,41 @@
 #include "som.h"
 
-////initialise la base 
+////initialiser la base de donnée
 void initialise_base(base_vector_data *base){
     base->len=150;
     base->col=4;
+/////allouer 150 vecteurs dans la base
     base->v =  (vector_data *)calloc(base->len, sizeof(vector_data));
     if(base->v==NULL){
-        printf("null");
+        printf("tableau de vecteur non alloué");
     }
     for(int i=0;i<base->len;i++){
+/////allouer les 4 elements dans chaque vecteur  
         base->v[i].x = (double *)calloc(base->col, sizeof(double));
+        if(base->v[i].x == NULL){
+            printf("vecteur[%d] non alloué",i);
+        }
+/////allouer l'id dans chaque vecteur
+        base->v[i].id = (char*)malloc(20*sizeof(char));
+        if(base->v[i].id == NULL){
+            printf("vecteur[%d].id non alloué",i);
+        }
     }
+}
 
+////free base
+void free_base(base_vector_data *base){
+    for(int i=0;i<base->len;i++){
+        free(base->v[i].id);///free id
+        free(base->v[i].x);///free 4 élements 
+    }
+    free(base->v);///free 150 vecteurs 
+    free(base);////free base 
+    printf("free base\n");
 }
 
 /////calculer la distance de chaque vecteur
+//// une fonction qui prends deux tableaux et renvoie la distance eucludienne 
 double distance_vector(double *x,double *w){
     double distance = 0.0;
     for (int i = 0; i < 4;i++){
@@ -24,19 +45,18 @@ double distance_vector(double *x,double *w){
     return distance;
 }
 
-//////Calculer les quatres moyennes
-float *vector_moyenne(base_vector_data *base){
-    float *tab =(float*)malloc(4*sizeof(float));
+//////Calculer les quatre moyennes
+/////fonction qui recoit la base et renvoie les quatres moyennes 
+void vector_moyenne(base_vector_data *base,double *tab){
     for(int j=0;j<base->col;j++){
         for(int i = 0;i<base->len;i++){
             tab[j]= tab[j] + base->v[i].x[j];
         }
         tab[j]=tab[j]/base->len;
-    }   
-    return tab;
+    }  
 }
 
-///////////calculer la norme des vecteurs de donnes 
+///////////calculer la norme des vecteurs de données et la sauvgarder dans la base 
 void vector_norm(base_vector_data *base){
     for(int i=0;i<base->len;i++){
         for(int j=0;j<base->col;j++){
@@ -60,7 +80,7 @@ void display_vect(base_vector_data *base){
     }
 }
 
-//////////normaliser le vecteur
+//////////fonction qui change la valeur des élemenets par leur valeur normalisée  
 void normalize_vect(base_vector_data *base){
     for(int i=0;i<base->len;i++){
         for(int j=0;j<base->col;j++){
@@ -69,8 +89,8 @@ void normalize_vect(base_vector_data *base){
     }   
 }
 
-///////////melanger les indice du tableau des donner 
-int * shuf(int * tab){
+///////////fonction qui melange les indices du tableau, elle prend un tableau des indices et rend le tableau melangé
+void shuff(int * tab){
     int size_row = 150;
     int rand = 0;
     int c;
@@ -84,30 +104,24 @@ int * shuf(int * tab){
         tab[i] = tab[rand];
         tab[rand]=c;
     }
-    return tab;
 }
 
-//////// sauvgarder les donnees dans la base
+//////// sauvgarder les données dans la base
 void recover(base_vector_data *base,char *nom_fichier){
     int i = 0;
-    int j=0; 
     char string[60];
     FILE *file= fopen( nom_fichier, "r" );
-    
     if(!file){
         printf("fichier n'existe pas");
     }
     
     fseek(file,0,SEEK_SET);
 	while((fgets(string,60,file)!=NULL) && (i<base->len) ){
-		if(base->len > 1){
-			j=0;
-            base->v[i].x[j] = atof(strtok(string,","));
-			for(j=1;j<4;j++){
+            base->v[i].x[0] = atof(strtok(string,","));
+			for(int j=1;j<4;j++){
 				base->v[i].x[j]= atof(strtok(NULL,","));
     		}
 			base->v[i].id= strdup(strtok(NULL,"\n"));
-		}		 
   		i++;	 
 	}
     fclose(file);

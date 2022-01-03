@@ -19,7 +19,7 @@ typedef struct base_vector_data {
 typedef struct node {
 double *w;
 double activate;
-char *etiquet;
+char etiquet;
 }node;
 
 typedef struct bmu{
@@ -41,12 +41,12 @@ void initialise_reseau(reseau *r);
 
 /////////traville sur la base
 int Rand_int(int min,int max);
-float Rand_float(float min,float max);
+double Rand_float(double min,double max);
 double distance_vector(double *x,double *w);
 void vector_norm(base_vector_data *base);
 void normalize_vect(base_vector_data *base);
-float *vector_moyenne(base_vector_data *base);
-int * shuf(int * tab);
+void vector_moyenne(base_vector_data *base, double *tab);
+void shuff(int * tab);
 
 void recover(base_vector_data *base, char *nom_fichier);
 void remplire_node(reseau *r,base_vector_data *base);
@@ -64,3 +64,6 @@ bmu * bmu_aleatoir(bmu * bu);
 ///////////////apprentissage
 void apprentissage(reseau *r,base_vector_data *base);
 
+//////// free
+void free_base(base_vector_data *base);
+void free_reseau(reseau *r);
