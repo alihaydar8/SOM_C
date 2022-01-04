@@ -27,9 +27,10 @@ int main (){
     if(base == NULL)
     {
         printf("base de donnée non allouée");
+        exit(EXIT_FAILURE);
     }
 ///allouer la memoire nécessaire pour la base de donnée et l'initialiser
-    initialise_base(base);
+    initialise_base(base,150,4);
 ///mettre les données des fleurs depuis iris data dans la base et les traiter 
     recover(base,"iris.data");
     // display_vect(v);
@@ -40,11 +41,12 @@ int main (){
     if(r == NULL)
     {
         printf("reseau de donnée non alloué");
+        exit(EXIT_FAILURE);
     }
 //////allouer la memoire nécessaire pour le réseau et l'initialiser
-    initialise_reseau(r);
+    initialise_reseau(r,6,10,base->col,base->len,0.8,2000);
 //////remplire la mattrice alèatoire
-    remplire_node(r,base);
+    remplir_node(r,base);
 /////faire l'apprentissage a la matrice 
     apprentissage(r,base);
 
